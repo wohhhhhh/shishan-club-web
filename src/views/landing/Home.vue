@@ -6,7 +6,10 @@
         <div class="intro-grid-bg"></div>
         <div class="intro-content">
           <div class="intro-logo">
-            <el-icon size="48" color="#3b82f6"><School /></el-icon>
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="m8 3 4 8 5-5 5 15H2z" />
+              <path d="M4.14 15.08q3.93-2.355 7.86.42c2.74 1.94 5.49 2 8.23.19" />
+            </svg>
           </div>
           <h1 class="intro-title">狮山社栈</h1>
           <p class="intro-slogan">发现热爱 · 连接成长</p>
@@ -248,7 +251,12 @@
         <div class="footer-grid">
           <div class="footer-brand">
             <div class="footer-logo">
-              <el-icon size="32" color="#3b82f6"><School /></el-icon>
+              <span class="footer-logo-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="m8 3 4 8 5-5 5 15H2z" />
+                  <path d="M4.14 15.08q3.93-2.355 7.86.42c2.74 1.94 5.49 2 8.23.19" />
+                </svg>
+              </span>
               <span>狮山社栈</span>
             </div>
             <p class="footer-desc">
@@ -291,7 +299,7 @@ import { useRouter } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import { useUserStore } from '@/stores/user'
 import {
-  School, StarFilled, Search, ArrowRight, User,
+  StarFilled, Search, ArrowRight, User,
   Calendar, Location, DocumentChecked, Check,
   Management, TrendCharts, Message, Phone
 } from '@element-plus/icons-vue'
@@ -522,6 +530,20 @@ const onCardIntersect = vIntersect
   margin-bottom: 24px;
   animation: logoPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   opacity: 0;
+  color: #fff;
+  filter:
+    drop-shadow(0 3px 0 rgba(37, 99, 235, 0.5))
+    drop-shadow(0 14px 26px rgba(37, 99, 235, 0.22));
+}
+
+.intro-logo svg {
+  width: 56px;
+  height: 56px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @keyframes logoPop {
@@ -1430,6 +1452,29 @@ const onCardIntersect = vIntersect
   margin-bottom: 16px;
 }
 
+.footer-logo-mark {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  filter:
+    drop-shadow(0 2px 0 rgba(37, 99, 235, 0.45))
+    drop-shadow(0 10px 20px rgba(37, 99, 235, 0.18));
+  flex-shrink: 0;
+}
+
+.footer-logo-mark svg {
+  width: 30px;
+  height: 30px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .footer-desc {
   font-size: 14px;
   color: var(--gray-400);
@@ -1591,7 +1636,7 @@ const onCardIntersect = vIntersect
 }
 
 .hero-title {
-  max-width: 9ch;
+  max-width: 12ch;
   font-size: clamp(52px, 6vw, 82px);
   line-height: 0.98;
   font-weight: 900;
@@ -1601,6 +1646,7 @@ const onCardIntersect = vIntersect
 
 .title-line.highlight {
   color: #3b82f6;
+  white-space: nowrap;
 }
 
 .hero-subtitle {

@@ -432,18 +432,16 @@ const pwdRules = {
 const loadProfile = async () => {
   try {
     const res = await getProfile()
-    if (res.data?.code === 200) {
-      const d = res.data.data
-      Object.assign(profileForm, {
-        name: d.name || '',
-        gender: d.gender || 'unknown',
-        college: d.college || '',
-        className: d.className || '',
-        phone: d.phone || '',
-        email: d.email || ''
-      })
-      userStore.setProfile({ ...userStore.userInfo, ...d })
-    }
+    const d = res.data || {}
+    Object.assign(profileForm, {
+      name: d.name || '',
+      gender: d.gender || 'unknown',
+      college: d.college || '',
+      className: d.className || '',
+      phone: d.phone || '',
+      email: d.email || ''
+    })
+    userStore.setProfile({ ...userStore.userInfo, ...d })
   } catch (e) {
     // silent
   }
@@ -454,13 +452,9 @@ const saveProfile = async () => {
   if (!valid) return
   profileSaving.value = true
   try {
-    const res = await updateProfile({ ...profileForm })
-    if (res.data?.code === 200) {
-      userStore.setProfile({ ...userStore.userInfo, ...profileForm })
-      ElMessage.success('资料已更新')
-    } else {
-      ElMessage.error(res.data?.msg || '更新失败')
-    }
+    await updateProfile({ ...profileForm })
+    userStore.setProfile({ ...userStore.userInfo, ...profileForm })
+    ElMessage.success('资料已更新')
   } finally {
     profileSaving.value = false
   }
@@ -475,19 +469,15 @@ const changePassword = async () => {
   }
   pwdSaving.value = true
   try {
-    const res = await updatePassword({
+    await updatePassword({
       oldPassword: pwdForm.oldPassword,
       newPassword: pwdForm.newPassword
     })
-    if (res.data?.code === 200) {
-      ElMessage.success('密码修改成功')
-      showPwdDialog.value = false
-      pwdForm.oldPassword = ''
-      pwdForm.newPassword = ''
-      pwdForm.confirmPassword = ''
-    } else {
-      ElMessage.error(res.data?.msg || '修改失败')
-    }
+    ElMessage.success('密码修改成功')
+    showPwdDialog.value = false
+    pwdForm.oldPassword = ''
+    pwdForm.newPassword = ''
+    pwdForm.confirmPassword = ''
   } finally {
     pwdSaving.value = false
   }
@@ -497,7 +487,7 @@ const loadApplications = async () => {
   appLoading.value = true
   try {
     const res = await getMyApplications({ page: 1, pageSize: 50 })
-    appList.value = res.data?.data?.list || []
+    appList.value = res.data?.list || []
   } catch (e) {
     // silent
   } finally {
@@ -509,7 +499,7 @@ const loadClubs = async () => {
   clubLoading.value = true
   try {
     const res = await getMyClubs()
-    clubList.value = res.data?.data || []
+    clubList.value = res.data || []
   } catch (e) {
     // silent
   } finally {
@@ -521,7 +511,7 @@ const loadActivities = async () => {
   actLoading.value = true
   try {
     const res = await getMyActivities({ page: 1, pageSize: 50 })
-    actList.value = res.data?.data?.list || []
+    actList.value = res.data?.list || []
   } catch (e) {
     // silent
   } finally {

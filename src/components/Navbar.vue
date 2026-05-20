@@ -3,7 +3,12 @@
     <div class="nav-container">
       <div class="nav-left">
         <router-link to="/" class="logo">
-          <el-icon size="28" color="#409eff"><School /></el-icon>
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="m8 3 4 8 5-5 5 15H2z" />
+              <path d="M4.14 15.08q3.93-2.355 7.86.42c2.74 1.94 5.49 2 8.23.19" />
+            </svg>
+          </span>
           <span class="logo-text">狮山社栈</span>
         </router-link>
       </div>
@@ -52,7 +57,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { School, UserFilled, ArrowDown, User, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { UserFilled, ArrowDown, User, Setting, SwitchButton } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -132,6 +137,27 @@ const handleCommand = (cmd) => {
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.1);
   transform: translateY(-1px);
+}
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  filter:
+    drop-shadow(0 2px 0 rgba(37, 99, 235, 0.5))
+    drop-shadow(0 8px 16px rgba(37, 99, 235, 0.22));
+  flex-shrink: 0;
+}
+.logo-mark svg {
+  width: 27px;
+  height: 27px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .logo-text {
   font-size: 20px;

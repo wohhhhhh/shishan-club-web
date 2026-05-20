@@ -41,6 +41,66 @@ function fail(code, msg) {
   return { code, msg, data: null }
 }
 
+const applicationStatusTextMap = {
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已拒绝'
+}
+
+const positionTextMap = {
+  MEMBER: '普通成员',
+  OFFICER: '干事',
+  MINISTER: '部长',
+  LEADER: '负责人'
+}
+
+const checkinStatusTextMap = {
+  NOT_CHECKED: '未签到',
+  CHECKED: '已签到',
+  LEAVE: '请假'
+}
+
+function normalizeApplication(app) {
+  const applyReason = app.applyReason || app.reason || ''
+  return {
+    ...app,
+    applyReason,
+    reason: applyReason,
+    statusText: app.statusText || applicationStatusTextMap[app.status] || app.status
+  }
+}
+
+function normalizeMember(member) {
+  const club = clubs.find(c => c.clubId == member.clubId)
+  return {
+    ...member,
+    clubName: member.clubName || club?.clubName || '',
+    college: member.college || club?.college || '',
+    position: ['MEMBER', 'OFFICER', 'MINISTER', 'LEADER'].includes(member.position) ? member.position : 'MEMBER',
+    positionText: member.positionText || positionTextMap[member.position] || '普通成员',
+    status: member.status === 'QUIT' ? 'QUIT' : 'ACTIVE',
+    statusText: member.statusText || (member.status === 'QUIT' ? '退社' : '在籍')
+  }
+}
+
+function isActiveMember(member) {
+  return member.status === 'ACTIVE' || member.status === '在籍'
+}
+
+function normalizeSignup(signup) {
+  const act = activities.find(a => a.activityId == signup.activityId)
+  return {
+    ...signup,
+    clubId: signup.clubId || act?.clubId || '',
+    clubName: signup.clubName || act?.clubName || '',
+    activityTime: act?.activityTime || signup.activityTime || '',
+    location: act?.location || signup.location || '',
+    activityStatus: act?.status || signup.activityStatus || '',
+    checkinStatus: signup.checkinStatus || 'NOT_CHECKED',
+    checkinStatusText: signup.checkinStatusText || checkinStatusTextMap[signup.checkinStatus] || '未签到'
+  }
+}
+
 function getUser(headers) {
   const token = headers?.Authorization?.replace('Bearer ', '')
   if (!token) return null
@@ -97,8 +157,11 @@ function handleRequest(config) {
       student: {
         studentId: user.studentId,
         name: user.name,
+        gender: user.gender || 'unknown',
         college: user.college,
+        className: user.className || '',
         phone: user.phone,
+        email: user.email || '',
         clubCount: user.clubCount || 0,
         status: user.status || '正常',
         role: user.role
@@ -191,9 +254,11 @@ function handleRequest(config) {
       clubName: clubs.find(c => c.clubId == data.clubId)?.clubName || '',
       studentId: currentUser.studentId,
       studentName: currentUser.name,
+      applyReason: data.reason || data.applyReason || '',
       reason: data.reason || '',
       applyTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
       status: 'PENDING',
+      statusText: '待审核',
       reviewerId: null,
       comment: null
     }
@@ -223,10 +288,12 @@ function handleRequest(config) {
           college: user.college,
           phone: user.phone,
           joinTime: new Date().toISOString().substring(0, 10),
-          position: '普通成员',
-          status: '在籍'
+          position: 'MEMBER',
+          positionText: '普通成员',
+          status: 'ACTIVE',
+          statusText: '在籍'
         }
-        members.push(m2)
+        members.push(normalizeMember(m2))
         club.currentCount++
         user.clubCount = (user.clubCount || 0) + 1
       }
@@ -238,7 +305,9 @@ function handleRequest(config) {
   // GET /my/applications
   if (m === 'GET' && url === '/my/applications') {
     if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
-    let list = applications.filter(a => a.studentId === currentUser.studentId)
+    let list = applications
+      .filter(a => a.studentId === currentUser.studentId)
+      .map(normalizeApplication)
     if (data.status) list = list.filter(a => a.status === data.status)
     result = success(paginate(list, data.page, data.pageSize))
     return Promise.resolve({ status: 200, data: result })
@@ -247,7 +316,9 @@ function handleRequest(config) {
   // GET /my/clubs
   if (m === 'GET' && url === '/my/clubs') {
     if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
-    const list = members.filter(m2 => m2.studentId === currentUser.studentId && m2.status === '在籍')
+    const list = members
+      .filter(m2 => m2.studentId === currentUser.studentId && isActiveMember(m2))
+      .map(normalizeMember)
     result = success(list)
     return Promise.resolve({ status: 200, data: result })
   }
@@ -314,14 +385,9 @@ function handleRequest(config) {
   // GET /my/activities
   if (m === 'GET' && url === '/my/activities') {
     if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
-    let list = signups.filter(s => s.studentId === currentUser.studentId).map(s => {
-      const act = activities.find(a => a.activityId == s.activityId)
-      return {
-        ...s,
-        activityTime: act?.activityTime || '',
-        location: act?.location || ''
-      }
-    })
+    let list = signups
+      .filter(s => s.studentId === currentUser.studentId)
+      .map(normalizeSignup)
     result = success(paginate(list, data.page, data.pageSize))
     return Promise.resolve({ status: 200, data: result })
   }
@@ -501,7 +567,10 @@ function handleRequest(config) {
       college: currentUser.college,
       className: currentUser.className || '',
       phone: currentUser.phone,
-      email: currentUser.email || ''
+      email: currentUser.email || '',
+      clubCount: currentUser.clubCount || 0,
+      status: currentUser.status || '正常',
+      role: currentUser.role || 'student'
     })
     return Promise.resolve({ status: 200, data: result })
   }
