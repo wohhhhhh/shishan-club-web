@@ -72,7 +72,7 @@
     <div v-if="total > 0" class="pagination-wrap">
       <el-pagination
         v-model:current-page="query.page"
-        v-model:page-size="query.page_size"
+        v-model:page-size="query.pageSize"
         :total="total"
         layout="total, prev, pager, next"
         @current-change="fetchList"
@@ -101,7 +101,7 @@ const query = reactive({
   clubId: '',
   status: '',
   page: 1,
-  page_size: 12
+  pageSize: 12
 })
 
 const fetchList = async () => {
@@ -119,7 +119,7 @@ const fetchList = async () => {
 
 const fetchClubs = async () => {
   try {
-    const res = await getClubList({ page: 1, page_size: 100 })
+    const res = await getClubList({ page: 1, pageSize: 100 })
     clubOptions.value = res.data?.list || []
   } catch (e) {
     console.error(e)

@@ -29,9 +29,9 @@
     </section>
 
     <section v-loading="loading" class="club-results" aria-label="社团列表">
-      <div v-if="displayList.length" class="tile-grid">
+      <div v-if="list.length" class="tile-grid">
         <button
-          v-for="(club, index) in displayList"
+          v-for="(club, index) in list"
           :key="club.clubId"
           type="button"
           class="club-tile"
@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import StatusTag from '@/components/StatusTag.vue'
@@ -140,22 +140,13 @@ const loading = ref(false)
 const list = ref([])
 const colleges = ref([])
 const activeClub = ref(null)
-const activeClubIndex = ref(0)
 
 const query = reactive({
   keyword: '',
   college: '',
   status: '',
   page: 1,
-  page_size: 100
-})
-
-const displayList = computed(() => {
-  return [...list.value].sort((a, b) => {
-    const aLength = String(a.clubName || '').length
-    const bLength = String(b.clubName || '').length
-    return bLength - aLength
-  })
+  pageSize: 100
 })
 
 const fetchList = async () => {
@@ -183,7 +174,6 @@ const goDetail = club => {
 
 const openPanel = club => {
   activeClub.value = club
-  activeClubIndex.value = Math.max(0, displayList.value.findIndex(item => item.clubId === club.clubId))
 }
 
 const closePanel = () => {
