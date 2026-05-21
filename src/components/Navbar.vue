@@ -119,9 +119,9 @@ const handleCommand = (cmd) => {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 8px 16px 8px 12px;
+  gap: 7px;
+  min-height: 44px;
+  padding: 7px 14px 7px 11px;
   text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 999px;
@@ -139,20 +139,20 @@ const handleCommand = (cmd) => {
   transform: translateY(-1px);
 }
 .logo-mark {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   filter:
-    drop-shadow(0 2px 0 rgba(37, 99, 235, 0.5))
-    drop-shadow(0 8px 16px rgba(37, 99, 235, 0.22));
+    drop-shadow(0 1px 0 rgba(37, 99, 235, 0.34))
+    drop-shadow(0 6px 12px rgba(37, 99, 235, 0.18));
   flex-shrink: 0;
 }
 .logo-mark svg {
-  width: 27px;
-  height: 27px;
+  width: 23px;
+  height: 23px;
   fill: currentColor;
   stroke: currentColor;
   stroke-width: 1.4;
@@ -160,9 +160,9 @@ const handleCommand = (cmd) => {
   stroke-linejoin: round;
 }
 .logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: #303133;
+  font-size: 16px;
+  font-weight: 750;
+  color: #334155;
 }
 .nav-links {
   display: flex;

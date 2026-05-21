@@ -1,5 +1,4 @@
-import axios from 'axios'
-import { users, clubs, activities, applications, members, signups, quitApplications, dashboardData } from './data'
+import { users, clubs, activities, applications, members, signups, quitApplications, dashboardData, saveMockStore } from './store'
 
 // Helpers
 function toSnake(obj) { return obj }  // pass-through, frontend expects camelCase
@@ -16,12 +15,25 @@ function toCamel(obj) {
   return obj
 }
 
-let nextApplicationId = 6
-let nextMemberId = 7
-let nextSignupId = 6
-let nextQuitId = 3
-let nextClubId = 19
-let nextActivityId = 7
+function nextNumericId(list, key, prefix = '') {
+  const max = list.reduce((acc, item) => {
+    const raw = String(item[key] ?? '')
+    const n = Number(raw.replace(prefix, ''))
+    return Number.isFinite(n) ? Math.max(acc, n) : acc
+  }, 0)
+  return max + 1
+}
+
+function formatId(prefix, value) {
+  return `${prefix}${String(value).padStart(3, '0')}`
+}
+
+let nextApplicationId = nextNumericId(applications, 'applicationId', 'AP')
+let nextMemberId = nextNumericId(members, 'memberId', 'M')
+let nextSignupId = nextNumericId(signups, 'signupId', 'S')
+let nextQuitId = nextNumericId(quitApplications, 'quitApplicationId', 'Q')
+let nextClubId = nextNumericId(clubs, 'clubId', 'C')
+let nextActivityId = nextNumericId(activities, 'activityId', 'A')
 
 function paginate(list, page = 1, pageSize = 10) {
   const start = (page - 1) * pageSize
@@ -85,6 +97,14 @@ function normalizeMember(member) {
 
 function isActiveMember(member) {
   return member.status === 'ACTIVE' || member.status === '在籍'
+}
+
+function restoreUserRoleIfFree(studentId) {
+  const user = users[studentId]
+  const stillManagesClub = clubs.some(club => club.leaderId === studentId)
+  if (user && !stillManagesClub && ['leader', 'club_admin', 'officer'].includes(user.role)) {
+    user.role = 'student'
+  }
 }
 
 function normalizeSignup(signup) {
@@ -205,7 +225,7 @@ function handleRequest(config) {
   if (m === 'POST' && url === '/club/create') {
     if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
     const c = {
-      clubId: String(nextClubId++),
+      clubId: formatId('C', nextClubId++),
       clubName: data.clubName,
       description: data.description,
       leaderId: data.leaderId,
@@ -249,7 +269,7 @@ function handleRequest(config) {
     const existing = applications.find(a => a.clubId == data.clubId && a.studentId === currentUser.studentId && a.status === 'PENDING')
     if (existing) { result = fail(400, '已提交过申请'); return Promise.resolve({ status: 200, data: result }) }
     const app = {
-      applicationId: nextApplicationId++,
+      applicationId: formatId('AP', nextApplicationId++),
       clubId: data.clubId,
       clubName: clubs.find(c => c.clubId == data.clubId)?.clubName || '',
       studentId: currentUser.studentId,
@@ -280,7 +300,7 @@ function handleRequest(config) {
       const club = clubs.find(c => c.clubId == app.clubId)
       if (user && club) {
         const m2 = {
-          memberId: nextMemberId++,
+          memberId: formatId('M', nextMemberId++),
           clubId: app.clubId,
           clubName: app.clubName,
           studentId: app.studentId,
@@ -351,7 +371,7 @@ function handleRequest(config) {
     if (existing) { result = fail(400, '已报名'); return Promise.resolve({ status: 200, data: result }) }
     if (act.currentCount >= act.maxCount) { result = fail(400, '报名人数已满'); return Promise.resolve({ status: 200, data: result }) }
     const s = {
-      signupId: nextSignupId++,
+      signupId: formatId('S', nextSignupId++),
       activityId: data.activityId,
       activityName: act.activityName,
       studentId: currentUser.studentId,
@@ -396,7 +416,7 @@ function handleRequest(config) {
   if (m === 'POST' && url === '/activity/publish') {
     if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
     const a = {
-      activityId: String(nextActivityId++),
+      activityId: formatId('A', nextActivityId++),
       activityName: data.activityName,
       clubId: data.clubId,
       content: data.content,
@@ -477,6 +497,83 @@ function handleRequest(config) {
     if (data.college) list = list.filter(c => c.college === data.college)
     if (data.status) list = list.filter(c => c.status === data.status)
     result = success(paginate(list, data.page, data.pageSize))
+    return Promise.resolve({ status: 200, data: result })
+  }
+
+  // PUT /admin/clubs/:clubId/admin
+  const clubAdminAssignMatch = url.match(/^\/admin\/clubs\/([^/]+)\/admin$/)
+  if (m === 'PUT' && clubAdminAssignMatch) {
+    if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
+    if (!['admin', 'super_admin'].includes(currentUser.role)) {
+      result = fail(403, '仅系统管理员可分配社团管理员')
+      return Promise.resolve({ status: 200, data: result })
+    }
+
+    const club = clubs.find(item => item.clubId == clubAdminAssignMatch[1])
+    const nextAdmin = users[data.studentId]
+    if (!club) { result = fail(404, '社团不存在'); return Promise.resolve({ status: 200, data: result }) }
+    if (!nextAdmin) { result = fail(404, '学生账号不存在'); return Promise.resolve({ status: 200, data: result }) }
+    if (nextAdmin.status === '禁用') { result = fail(400, '禁用账号不能分配为管理员'); return Promise.resolve({ status: 200, data: result }) }
+    if (['admin', 'super_admin'].includes(nextAdmin.role)) {
+      result = fail(400, '系统管理员无需重复分配为社团管理员')
+      return Promise.resolve({ status: 200, data: result })
+    }
+
+    const previousLeaderId = club.leaderId
+    Object.assign(club, {
+      leaderId: nextAdmin.studentId,
+      leaderName: nextAdmin.name,
+      leaderPhone: nextAdmin.phone || ''
+    })
+    if (nextAdmin.role === 'student') {
+      nextAdmin.role = 'club_admin'
+    }
+
+    const previousMember = members.find(member => member.clubId == club.clubId && member.studentId === previousLeaderId)
+    if (previousMember?.position === 'LEADER') {
+      previousMember.position = 'MEMBER'
+      previousMember.positionText = positionTextMap.MEMBER
+    }
+    const nextMember = members.find(member => member.clubId == club.clubId && member.studentId === nextAdmin.studentId)
+    if (nextMember && isActiveMember(nextMember)) {
+      nextMember.position = 'LEADER'
+      nextMember.positionText = positionTextMap.LEADER
+    }
+    if (previousLeaderId && previousLeaderId !== nextAdmin.studentId) {
+      restoreUserRoleIfFree(previousLeaderId)
+    }
+
+    result = success(club)
+    return Promise.resolve({ status: 200, data: result })
+  }
+
+  // DELETE /admin/clubs/:clubId/admin
+  if (m === 'DELETE' && clubAdminAssignMatch) {
+    if (!currentUser) { result = fail(401, '未登录'); return Promise.resolve({ status: 200, data: result }) }
+    if (!['admin', 'super_admin'].includes(currentUser.role)) {
+      result = fail(403, '仅系统管理员可撤销社团管理员')
+      return Promise.resolve({ status: 200, data: result })
+    }
+
+    const club = clubs.find(item => item.clubId == clubAdminAssignMatch[1])
+    if (!club) { result = fail(404, '社团不存在'); return Promise.resolve({ status: 200, data: result }) }
+
+    const previousLeaderId = club.leaderId
+    const previousMember = members.find(member => member.clubId == club.clubId && member.studentId === previousLeaderId)
+    if (previousMember?.position === 'LEADER') {
+      previousMember.position = 'MEMBER'
+      previousMember.positionText = positionTextMap.MEMBER
+    }
+    Object.assign(club, {
+      leaderId: '',
+      leaderName: '',
+      leaderPhone: ''
+    })
+    if (previousLeaderId) {
+      restoreUserRoleIfFree(previousLeaderId)
+    }
+
+    result = success(club)
     return Promise.resolve({ status: 200, data: result })
   }
 
@@ -622,6 +719,9 @@ function handleRequest(config) {
 // Build mock adapter
 const mockAdapter = (config) => {
   return handleRequest(config).then(response => {
+    if ((config.method || 'GET').toUpperCase() !== 'GET' && response.data?.code === 200) {
+      saveMockStore()
+    }
     return new Promise((resolve) => {
       resolve({
         data: response.data,
@@ -635,4 +735,3 @@ const mockAdapter = (config) => {
 }
 
 export { mockAdapter }
-axios.defaults.adapter = mockAdapter

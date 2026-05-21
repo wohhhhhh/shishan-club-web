@@ -40,6 +40,14 @@ export function getAdminClubList(params) {
   return request.get('/admin/clubs', { params })
 }
 
+export function assignClubAdmin(clubId, data) {
+  return request.put(`/admin/clubs/${clubId}/admin`, data)
+}
+
+export function removeClubAdmin(clubId) {
+  return request.delete(`/admin/clubs/${clubId}/admin`)
+}
+
 export function getAdminApplications(params) {
   return request.get('/admin/applications', { params })
 }

@@ -31,10 +31,6 @@
         <div class="hero-grid">
           <!-- 左侧文字区 -->
           <div class="hero-content">
-            <div class="hero-badge" :class="{ 'animate-in': heroReady }">
-              <el-icon><StarFilled /></el-icon>
-              <span>校园社团一站式服务平台</span>
-            </div>
             <h1 class="hero-title" :class="{ 'animate-in': heroReady }">
               <span class="title-line">发现热爱</span>
               <span class="title-line highlight">加入属于你的</span>
@@ -43,7 +39,7 @@
             <p class="hero-subtitle" :class="{ 'animate-in': heroReady }">
               浏览社团、报名活动、记录你的校园生活
             </p>
-            <div class="hero-actions" :class="{ 'animate-in': heroReady }">
+            <div v-if="!userStore.isLoggedIn" class="hero-actions" :class="{ 'animate-in': heroReady }">
               <el-button type="primary" size="large" class="hero-btn-primary" @click="scrollToClubs">
                 <el-icon><Search /></el-icon>
                 浏览社团
@@ -62,18 +58,18 @@
                 <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=500&fit=crop" alt="社团活动">
               </div>
               <div class="collage-item collage-stat stat-blue" :style="{ '--delay': '100ms' }">
-                <div class="stat-number">120+</div>
+                <div class="stat-number">50+</div>
                 <div class="stat-label">入驻社团</div>
               </div>
               <div class="collage-item collage-small" :style="{ '--delay': '200ms' }">
                 <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=200&h=200&fit=crop" alt="学生交流">
               </div>
               <div class="collage-item collage-stat stat-green" :style="{ '--delay': '300ms' }">
-                <div class="stat-number">300+</div>
+                <div class="stat-number">100+</div>
                 <div class="stat-label">校园活动</div>
               </div>
               <div class="collage-item collage-stat stat-orange" :style="{ '--delay': '400ms' }">
-                <div class="stat-number">5000+</div>
+                <div class="stat-number">1000+</div>
                 <div class="stat-label">学生参与</div>
               </div>
               <div class="collage-item collage-small" :style="{ '--delay': '500ms' }">
@@ -94,7 +90,17 @@
         </div>
 
         <div class="static-grid">
-          <div v-for="club in hotClubs.slice(0, 3)" :key="club.clubId" class="static-card" v-intersect="onCardIntersect">
+          <div
+            v-for="club in hotClubs.slice(0, 3)"
+            :key="club.clubId"
+            class="static-card static-link-card"
+            role="link"
+            tabindex="0"
+            v-intersect="onCardIntersect"
+            @click="goToClubDetail(club.clubId)"
+            @keydown.enter="goToClubDetail(club.clubId)"
+            @keydown.space.prevent="goToClubDetail(club.clubId)"
+          >
             <div class="static-image">
               <img :src="club.image" :alt="club.clubName">
               <div class="static-status" :class="club.status">{{ club.statusText }}</div>
@@ -109,7 +115,7 @@
               </div>
               <h3 class="static-name">{{ club.clubName }}</h3>
               <p class="static-intro">{{ club.introduction }}</p>
-              <el-button type="primary" text @click="goToLogin">
+              <el-button type="primary" text @click.stop="goToClubDetail(club.clubId)">
                 了解更多
                 <el-icon><ArrowRight /></el-icon>
               </el-button>
@@ -118,7 +124,7 @@
         </div>
 
         <div class="section-more" v-intersect="onSectionIntersect">
-          <el-button size="large" @click="goToLogin">
+          <el-button size="large" @click="goToClubSquare">
             查看全部社团
             <el-icon><ArrowRight /></el-icon>
           </el-button>
@@ -135,7 +141,17 @@
         </div>
 
         <div class="static-grid">
-          <div v-for="activity in recentActivities.slice(0, 3)" :key="activity.activityId" class="static-card activity-static-card" v-intersect="onCardIntersect">
+          <div
+            v-for="activity in recentActivities.slice(0, 3)"
+            :key="activity.activityId"
+            class="static-card static-link-card activity-static-card"
+            role="link"
+            tabindex="0"
+            v-intersect="onCardIntersect"
+            @click="goToActivityDetail(activity.activityId)"
+            @keydown.enter="goToActivityDetail(activity.activityId)"
+            @keydown.space.prevent="goToActivityDetail(activity.activityId)"
+          >
             <div class="static-image activity-static-image">
               <img :src="activity.image" :alt="activity.activityName">
               <div class="static-status" :class="activity.status">{{ activity.statusText }}</div>
@@ -157,11 +173,18 @@
                   <span>{{ activity.currentCount }}/{{ activity.maxCount }}人已报名</span>
                 </div>
               </div>
-              <el-button type="primary" :disabled="activity.status !== 'SIGNING'" @click="goToLogin">
-                {{ activity.status === 'SIGNING' ? '立即报名' : '报名结束' }}
+              <el-button type="primary" @click.stop="goToActivityDetail(activity.activityId)">
+                {{ activity.status === 'SIGNING' ? '立即报名' : '查看活动' }}
               </el-button>
             </div>
           </div>
+        </div>
+
+        <div class="section-more" v-intersect="onSectionIntersect">
+          <el-button size="large" @click="goToActivityCenter">
+            查看全部活动
+            <el-icon><ArrowRight /></el-icon>
+          </el-button>
         </div>
       </div>
     </section>
@@ -299,7 +322,7 @@ import { useRouter } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import { useUserStore } from '@/stores/user'
 import {
-  StarFilled, Search, ArrowRight, User,
+  Search, ArrowRight, User,
   Calendar, Location, DocumentChecked, Check,
   Management, TrendCharts, Message, Phone
 } from '@element-plus/icons-vue'
@@ -323,6 +346,22 @@ onMounted(() => {
 
 const goToLogin = () => {
   router.push('/login')
+}
+
+const goToClubSquare = () => {
+  router.push('/clubs')
+}
+
+const goToClubDetail = clubId => {
+  router.push(`/clubs/${clubId}`)
+}
+
+const goToActivityCenter = () => {
+  router.push('/activities')
+}
+
+const goToActivityDetail = activityId => {
+  router.push(`/activities/${activityId}`)
 }
 
 const scrollToClubs = () => {
@@ -1074,6 +1113,15 @@ const onCardIntersect = vIntersect
   transform: translateY(-6px);
   border-color: rgba(148, 163, 184, 0.45);
   box-shadow: 0 24px 52px -30px rgba(15, 23, 42, 0.42);
+}
+
+.static-link-card {
+  cursor: pointer;
+}
+
+.static-link-card:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 5px;
 }
 
 .static-image {

@@ -1,14 +1,18 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
-import { mockAdapter } from '@/mock/index'
+
+const useMock = String(import.meta.env.VITE_USE_MOCK ?? 'true') === 'true'
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
 
 const request = axios.create({
-  baseURL: '',
+  baseURL: useMock ? '' : apiBaseURL,
   timeout: 10000
 })
 
-request.defaults.adapter = mockAdapter
+if (useMock) {
+  request.defaults.adapter = (config) => import('@/mock/index').then(({ mockAdapter }) => mockAdapter(config))
+}
 
 request.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
